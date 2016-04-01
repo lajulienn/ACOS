@@ -1,4 +1,4 @@
-#include <sys/types.h>
+ #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -7,7 +7,6 @@
 int main() {
 	int sock, listener;
 	struct sockaddr_in addr;
-	char buf[256];
 	int bytes_read;
 
 	listener = socket(AF_INET, SOCK_STREAM, 0);

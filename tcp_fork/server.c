@@ -4,11 +4,18 @@
 #include <stdio.h>
 #include <unistd.h>
 
+struct connection {
+	int socket;
+	int id;
+};
+
 int main() {
-	int sock, listener;
+	int listener;
+	struct connection conn;
 	struct sockaddr_in addr;
 	char buf[256];
 	int bytes_read;
+	int conn_id;
 
 	listener = socket(AF_INET, SOCK_STREAM, 0);
 	if (listener < 0) {
@@ -30,21 +37,25 @@ int main() {
 		return 1;
 	}
 
+	conn_id = 0;
 	while (1) {
-		sock = accept(listener, NULL, NULL);
-		if (sock < 0) {
+		conn.socket = accept(listener, NULL, NULL);
+		if (conn.socket < 0) {
 			fprintf(stderr, "Failed to accept.");
 			return 1;
 		}
 
+		conn.id = conn_id;
+
 		int id = fork();
 
 		if (id == 0) { //in child
-			FILE *fd = fopen("log", "a");
-			char c;
-
+		char filename[256];
+		sprintf(filename, "%d", conn.id);
+		FILE *fd = fopen(filename, "w");
 			while (1) {
-				bytes_read = recv(sock, &c, sizeof(char), 0);
+				char c;
+				bytes_read = recv(conn.socket, &c, sizeof(char), 0);
 				//printf("read %d bytes, %c\n", bytes_read, c);
 				if (bytes_read <= 0) {
 					//printf("break\n");
@@ -53,8 +64,10 @@ int main() {
 				fputc(c, fd);
 			}
 			fclose(fd);
-			close(sock);
+			close(conn.socket);
+			return 0;
 		} else {
+			++conn_id;
 			continue;
 		}
 	}

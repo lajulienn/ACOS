@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-char message[256];
 
 int main() {
 	int sock;
