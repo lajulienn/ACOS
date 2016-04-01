@@ -4,13 +4,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <pthread.h>
-#include <stdio.h>
-
-void *entry(void *arg) {
-	printf("Inside thread %d: %p\n", pthread_self(), arg);
-}
-
 int main() {
 	int sock, listener;
 	struct sockaddr_in addr;
@@ -29,10 +22,10 @@ int main() {
 
 	if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		fprintf(stderr, "Failed to bind.\n");
-		return 1;
+		return 1;	
 	}
 
-	if (listen(listener, 1) == -1) {
+	if(listen(listener, 1) == -1) {
 		fprintf(stderr, "Failed to listen.\n");
 		return 1;
 	}
@@ -44,17 +37,22 @@ int main() {
 			return 1;
 		}
 
-		pthread_t thread;
-		thread = pthread_create(&thread, NULL, entry, NULL);
+	 	FILE *fd = fopen("log", "a");
+		char c;
 
-		bytes_read = recv(sock, buf, 256, 0);
-		if (bytes_read <=0) 
-			break;
-		printf("%s\n", buf);
+		while (1) {
+			bytes_read = recv(sock, &c, sizeof(char), 0);
+			//printf("read %d bytes, %c\n", bytes_read, c);
+			if (bytes_read <= 0) {
+					//printf("break\n");
+				break;
+			}
+			fputc(c, fd);
+		}
 
+		fclose(fd);
 		close(sock);
 	}
-	close(listener);
 
 	return 0;
 }

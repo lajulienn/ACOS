@@ -11,8 +11,8 @@ int main() {
 	struct sockaddr_in addr;
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock < 0) {
-		fprintf(stderr, "Failed to create socket./n");
+	if (socket < 0) {
+		printf("Failed to create socket./n");
 		return 1;
 	}
 
@@ -21,13 +21,15 @@ int main() {
 	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
 	if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		fprintf(stderr, "Connection failed.\n");
+		printf("Connection failed.\n");
 		return 1;
 	}
 
+	while (1) {
 	printf(">");
 	scanf("%s", message);
 	send(sock, message, sizeof(message), 0);
+	}
 
 	close(sock);
 

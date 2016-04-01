@@ -4,13 +4,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <pthread.h>
-#include <stdio.h>
-
-void *entry(void *arg) {
-	printf("Inside thread %d: %p\n", pthread_self(), arg);
-}
-
 int main() {
 	int sock, listener;
 	struct sockaddr_in addr;
@@ -19,7 +12,7 @@ int main() {
 
 	listener = socket(AF_INET, SOCK_STREAM, 0);
 	if (listener < 0) {
-		fprintf(stderr, "Failed to create listener.");
+		printf("Failed to create listener.");
 		return 1;
 	}
 
@@ -28,33 +21,28 @@ int main() {
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		fprintf(stderr, "Failed to bind.\n");
+		printf("Failed to bind.\n");
 		return 1;
 	}
 
-	if (listen(listener, 1) == -1) {
-		fprintf(stderr, "Failed to listen.\n");
-		return 1;
-	}
+	listen(listener, 1);
 
 	while (1) {
 		sock = accept(listener, NULL, NULL);
 		if (sock < 0) {
-			fprintf(stderr, "Failed to accept.");
+			printf("Failed to accept.");
 			return 1;
 		}
 
-		pthread_t thread;
-		thread = pthread_create(&thread, NULL, entry, NULL);
-
-		bytes_read = recv(sock, buf, 256, 0);
-		if (bytes_read <=0) 
-			break;
-		printf("%s\n", buf);
+		while (1) {
+			bytes_read = recv(sock, buf, 256, 0);
+			if (bytes_read <=0) 
+				break;
+			printf("%s\n", buf);
+		}
 
 		close(sock);
 	}
-	close(listener);
 
 	return 0;
 }
