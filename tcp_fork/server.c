@@ -37,22 +37,26 @@ int main() {
 			return 1;
 		}
 
-	 	FILE *fd = fopen("log", "a");
-		char c;
+		int id = fork();
 
-		while (1) {
-			bytes_read = recv(sock, &c, sizeof(char), 0);
-			//printf("read %d bytes, %c\n", bytes_read, c);
-			if (bytes_read <= 0) {
+		if (id == 0) { //in child
+			FILE *fd = fopen("log", "a");
+			char c;
+
+			while (1) {
+				bytes_read = recv(sock, &c, sizeof(char), 0);
+				//printf("read %d bytes, %c\n", bytes_read, c);
+				if (bytes_read <= 0) {
 					//printf("break\n");
-				break;
+					break;
+				}
+				fputc(c, fd);
 			}
-			fputc(c, fd);
+			fclose(fd);
+			close(sock);
+		} else {
+			continue;
 		}
-
-		fclose(fd);
-		close(sock);
 	}
-
 	return 0;
 }

@@ -12,7 +12,7 @@ int main() {
 
 	listener = socket(AF_INET, SOCK_STREAM, 0);
 	if (listener < 0) {
-		printf("Failed to create listener.");
+		fprintf(stderr, "Failed to create listener.");
 		return 1;
 	}
 
@@ -21,26 +21,36 @@ int main() {
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		printf("Failed to bind.\n");
-		return 1;
+		fprintf(stderr, "Failed to bind.\n");
+		return 1;	
 	}
 
-	listen(listener, 1);
+	if(listen(listener, 1) == -1) {
+		fprintf(stderr, "Failed to listen.\n");
+		return 1;
+	}
 
 	while (1) {
 		sock = accept(listener, NULL, NULL);
 		if (sock < 0) {
-			printf("Failed to accept.");
+			fprintf(stderr, "Failed to accept.");
 			return 1;
 		}
 
+	 	FILE *fd = fopen("log", "a");
+		char c;
+
 		while (1) {
-			bytes_read = recv(sock, buf, 256, 0);
-			if (bytes_read <=0) 
+			bytes_read = recv(sock, &c, sizeof(char), 0);
+			//printf("read %d bytes, %c\n", bytes_read, c);
+			if (bytes_read <= 0) {
+					//printf("break\n");
 				break;
-			printf("%s\n", buf);
+			}
+			fputc(c, fd);
 		}
 
+		fclose(fd);
 		close(sock);
 	}
 

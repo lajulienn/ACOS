@@ -12,7 +12,7 @@ int main() {
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (socket < 0) {
-		printf("Failed to create socket./n");
+		fprintf(stderr, "Failed to create socket./n");
 		return 1;
 	}
 
@@ -21,15 +21,19 @@ int main() {
 	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
 	if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		printf("Connection failed.\n");
+		fprintf(stderr, "Connection failed.\n");
 		return 1;
 	}
 
 	while (1) {
-	printf(">");
-	scanf("%s", message);
-	send(sock, message, sizeof(message), 0);
-	}
+		char s = fgetc(stdin);
+		if (s == EOF) {
+			//printf("break\n");
+			break;
+		}
+		send(sock, &s, sizeof(char), 0);
+		//printf("send\n");
+	} 
 
 	close(sock);
 
