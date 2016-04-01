@@ -1,0 +1,13 @@
+# This file contains a list of stemmers to include in the distribution.
+# The format is a set of space separated lines - on each line:
+#  First item is name of stemmer.
+#  Second item is comma separated list of character sets.
+#  Third item is comma separated list of names to refer to the stemmer by.
+#
+# Lines starting with a #, or blank lines, are ignored.
+
+# List all the main algorithms for each language, in UTF-8.
+
+english         UTF_8                   english,en,eng
+french          UTF_8                   french,fr,fre,fra
+russian         UTF_8                   russian,ru,rus
