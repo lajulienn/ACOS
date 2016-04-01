@@ -6,7 +6,7 @@ client: client.c
 	$(CC) client.c -o client
 
 server: server.c
-	$(CC) -lpthread server.c -o server
+	$(CC) -pthread server.c -o server
 
 clean:
 	rm -rf client server
