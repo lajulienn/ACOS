@@ -54,7 +54,7 @@ int main() {
 	int value = *(int*)ptr;
 	printf("Current value in our shared memory: %d\n", value);
 
-	printf("Please, enter a new value you want to write to shared memory\nand your message to server.\n");
+	printf("Please, enter a new value you want to write to shared memory\nand your message to server divided by a space.\n");
 	scanf("%d", &value);
 	//changing value
   	*(int*)ptr = value;
@@ -64,10 +64,6 @@ int main() {
 	//printf("Enter your message to server:\n");
 
 	char buf[256];
-
-	//sprintf(buf, "New value: %d", value);
-	//send(sock, buf, sizeof(buf), 0);
-
 
 	fgets(buf, sizeof(buf) / sizeof(char), stdin);
 	send(sock, buf, sizeof(buf), 0);
@@ -82,6 +78,18 @@ int main() {
 	//printf("send\n");
 
 	close(sock);
+
+	res = close(shmem_fd);
+  	if (res) {
+    	perror("close");
+    	exit(1);
+  	}
+
+  	res = shm_unlink(SHMEM_PATH);
+	if (res) {
+	 	perror("shm_unlink");
+	  	exit(1);
+	}
 
 	return 0;
 }
