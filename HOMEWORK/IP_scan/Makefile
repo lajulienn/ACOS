@@ -1,16 +1,8 @@
-CC=g++
 CXX=g++
-CXXFLAGS=-std=c++14
+CXXFLAGS=-std=c++14 -O2 -Wall -Werror
 
-all: client server scan
-
-client: client.c
-	$(CC) -g -std=c++14 client.c -o client
-
-server: server.c
-	$(CC) -g -std=c++14 server.c -o server
-
-scan: scan.o
+all: scan.cc
+	$(CXX) $(CXXFLAGS) scan.cc -o scan
 
 clean:
-	rm -rf client server
+	rm -rf scan
