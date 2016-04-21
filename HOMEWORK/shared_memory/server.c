@@ -7,10 +7,13 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <sys/un.h>
 
 #define SHMEM_PATH "/my_shmem"
 // 64 KiB
 #define SHMEM_SIZE (1 << 16)
+
+#define SERVER_PATH "server_path"
 
 int main() {
   	int shmem_fd = shm_open(SHMEM_PATH, O_RDWR | O_CREAT, 0666);
@@ -36,18 +39,17 @@ int main() {
   	*(int*)ptr = 42;
 
 	int sock, listener;
-	struct sockaddr_in addr;
+	struct sockaddr_un addr;
 	int bytes_read;
 
-	listener = socket(AF_INET, SOCK_STREAM, 0);
+	listener = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (listener < 0) {
 		fprintf(stderr, "Failed to create listener.");
 		return 1;
 	}
 
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(3000);
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sun_family = AF_UNIX;
+	strcpy(addr.sun_path, SERVER_PATH);
 
 	if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		fprintf(stderr, "Failed to bind.\n");
@@ -66,7 +68,7 @@ int main() {
 			return 1;
 		}
 
-	 	FILE *fd = fopen("log", "a");
+	 	//FILE *fd = fopen("log", "a");
 		char c;
 
 		int value = *(int*)ptr;
@@ -79,13 +81,30 @@ int main() {
 					//printf("break\n");
 				break;
 			}
-			fprintf(fd, "%s", buf);
+			char answer[4];
+			sscanf(buf, "%s", answer);
+			if (strcmp(answer, "stop") == 0) {
+
+				//fclose(fd);
+				close(sock);
+
+				res = close(shmem_fd);
+			  	if (res) {
+    				perror("close");
+    				exit(1);
+  				}
+
+				unlink(SERVER_PATH);
+
+				return 0;
+			}
+			//fprintf(fd, "%s", buf);
 			printf("%s", buf);
 			//fputc(c, fd);
 			value = *(int*)ptr;
 		}
 
-		fclose(fd);
+	//	fclose(fd);
 		close(sock);
 	}
 
@@ -95,11 +114,7 @@ int main() {
     	exit(1);
   	}
 
-  	res = shm_unlink(SHMEM_PATH);
-	if (res) {
-	 	perror("shm_unlink");
-	  	exit(1);
-	}
+	unlink(SERVER_PATH);
 
 	return 0;
 }
