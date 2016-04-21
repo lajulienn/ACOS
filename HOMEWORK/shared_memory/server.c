@@ -96,6 +96,12 @@ int main() {
 
 				unlink(SERVER_PATH);
 
+				res = shm_unlink(SHMEM_PATH);
+				if (res) {
+	 				perror("shm_unlink");
+	  				exit(1);
+				}	
+
 				return 0;
 			}
 			//fprintf(fd, "%s", buf);
