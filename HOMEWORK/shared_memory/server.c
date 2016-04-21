@@ -75,15 +75,16 @@ int main() {
 		while (1) {
 			printf("Current value = %d\n", value);
 			char buf[256];
-			bytes_read = recv(sock, buf, sizeof(buf) / sizeof(char), 0);
+			bytes_read = recv(sock, buf, sizeof(buf) / sizeof(char) - 1, 0);
+			buf[bytes_read] = '\0';
 			//printf("read %d bytes, %c\n", bytes_read, c);
 			if (bytes_read <= 0) {
 					//printf("break\n");
 				break;
 			}
-			char answer[4];
-			sscanf(buf, "%s", answer);
-			if (strcmp(answer, "stop") == 0) {
+			//char answer[4];
+			//sscanf(buf, "%s", answer);
+			if (strcmp(buf, "stop") == 0) {
 
 				//fclose(fd);
 				close(sock);

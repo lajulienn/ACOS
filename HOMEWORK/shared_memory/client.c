@@ -57,19 +57,20 @@ int main() {
 	while (1) {
 		printf("*****\nIf you want to close server enter 'stop'.\nIf you want to close only client enter 'exit'.\nElse enter 'no'.\n*****\n");
 
-		char answer[5];
-		fgets(answer, sizeof(answer) / sizeof(char), stdin);
-		if (strcmp(answer, "stop") == 0) {
-			send(sock, answer, sizeof(answer), 0);
+		char buf[256];
+		//char answer[5];
+		fgets(buf, sizeof(buf) / sizeof(char) - 1, stdin);
+		buf[strcspn(buf, "\n")] = '\0';
+		if (strcmp(buf, "stop") == 0) {
+			send(sock, buf, sizeof(buf), 0);
 		
 			goto end;
 
-		} else if (strcmp(answer, "exit") == 0) {
+		} else if (strcmp(buf, "exit") == 0) {
 
 			goto end;
 
 		} else {
-			char buf[256];
 			int value = *(int*)ptr;
 			printf("Current value in our shared memory: %d\n", value);
 
