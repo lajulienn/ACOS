@@ -1,4 +1,4 @@
-CXXFLAGS=-std=c++14
+CXXFLAGS=-std=c++14 -g
 LDLIBS=-lstdc++ -lpthread -lunistring
 
 analyser: analyser.o stemfile.o tokenize.o snowball/libstemmer.o

@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <fstream>
+#include <locale.h>
 
 #include "libstemmer.h"
 #include "stemfile.h"
@@ -12,104 +13,151 @@
 
 #define THREAD_NUM 4
 
-std::vector<std::string> data;
-
 void *thread_analyser(struct ThreadData *thread_data);
 int readData(std::istream &source);
+void merge (struct ThreadData *thread_data, std::map<std::string, int> &result);
 
 
 struct ThreadData {
-	int start_line;
-	int end_line;
 	pthread_t thread;
 	FILE *raw_file;
 	std::map<std::string, int> roots;
 };
 
+
 int main(int argc, char *argv[])  {
+	setlocale(LC_ALL, "");
+	printf("Entered main. argc = %d, argv = %s\n", argc, argv);
 	if (argc < 2) {
 		printf("Usage: %s <filename>\n", argv[0]);
 		return 1;
 	}
-	std::ifstream input(argv[1]);
-	int lines_count = readData(input);
-	if (lines_count == 0) {
-		perror("readData");
-	}
-	int block_size = lines_count / THREAD_NUM;
-	//int extra_size = lines_count % 4;
+
+	FILE *input = fopen(argv[1], "r");
 	ThreadData threads[THREAD_NUM];
 
 	for (int i = 0; i < THREAD_NUM; ++i) {
-		if (i != THREAD_NUM - 1) {
-			threads[i].start_line = i * block_size;
-			threads[i].end_line = (i + 1) * block_size - 1; 
-		} else {
-			threads[i].start_line = i * block_size;
-			threads[i].end_line = lines_count - 1;
-		}
-		std::string namefile = "in";
+		std::string namefile = "in_";
 		namefile.push_back('0' + i);
-		threads[i].raw_file = fopen(namefile.c_str(), "rw");
+		threads[i].raw_file = fopen(namefile.c_str(), "w+");
+		perror("open");
+		printf("namefile = '%s'\n", namefile.c_str());
+	}
+	printf("Ended for.\n");
+
+	char *buf;
+	for (int i = 0; ; ++i) {
+		printf("Entered for.\n");
+		size_t size = 0;
+		if (getline(&buf, &size, input) == -1) {
+			printf("EOF.\n");
+			break;
+		} else {
+			fprintf(threads[i % 4].raw_file, "%s\n", buf);
+			std::cout << i << std::endl;
+		}
+	}
+	
+	for (int i = 0; i < THREAD_NUM; ++i) {
+		printf("Before pthread_create.\n");
+		fseek(threads[i].raw_file, 0, SEEK_SET);
+		int check = pthread_create(&threads[i].thread, NULL, (void * (*)(void *)) thread_analyser, &threads[i]);
+		if (check) {
+			perror("pthread_create");
+			exit(1);
+		}
+		std::cout << threads[i].thread << std::endl;
 	}
 	for (int i = 0; i < THREAD_NUM; ++i) {
-		for (int j = threads[i].start_line; j <= threads[i].end_line; ++j) {
-			fprintf(threads[i].raw_file, "%s\n", data[i]);
+		int check = pthread_join(threads[i].thread, NULL);
+			if (check) {
+			perror("pthread_join");
+			exit(1);
 		}
 	}
 
+	std::cout << "Ended working with threads." << std::endl;
+
+	/*for (auto x : threads[0].roots) {
+		std::cout << x.first << " : " << x.second << std:: endl;
+	}
+
+	printf("After dump\n");*/
+
+	std::map<std::string, int> result;
+	merge(threads, result);	
+
+	FILE *output = fopen("output.txt", "w");
+	//FILE *output1 = fopen("output1.txt", "w");
+
+	/*for (auto x : threads[0].roots) {
+		fprintf(output1, "%s : %d\n", x.first.c_str(), x.second);
+	}*/
+
+	for (auto x : result) {
+		std::cout << x.first << " : " << x.second << std:: endl;
+		fprintf(output, "%s : %d\n", x.first.c_str(), x.second);
+	}
+
+	printf("After dump\n");
+
 	for (int i = 0; i < THREAD_NUM; ++i) {
-		pthread_create(&threads[i].thread, NULL, (void * (*)(void *)) thread_analyser, &threads[i]);
+		fclose(threads[i].raw_file);
 	}
-	for (int i = 0; i < THREAD_NUM; ++i) {
-		pthread_join(threads[i].thread, NULL);
-	}
-
-
-	std::map<std::string, int> &result = threads[0].roots;
-	for (int i = 1; i < THREAD_NUM; ++i) {
-		for (auto count : threads[i].roots) {
-			result[count.first] += count.second;
-		}
-	}
-
-	for (auto count : result)
-		std::cout << count.first << ": " << count.second << std::endl;
+	fclose(output);
 
 	return 0;
 }
 
 /* requires opened raw_file */
 void *thread_analyser(struct ThreadData *thread_data) {
-	char ch;
+	//printf("Entered thread_analyser.\n");
+	//char ch;
 
-	FILE *clean_file = fopen("tmp", "r");
-	char *language = "english";
-	char *charenc = "UTF-8";
+	//FILE *clean_file = fopen("tmp", "w+");
+	//printf("Opened clean file tmp.\n");	
+	const char *language = "english";
+	const char *charenc = NULL;
+
+	char *buf;
+	size_t size = 0;
+	getdelim(&buf, &size, -1, thread_data->raw_file);
+
+	std::vector<std::string> words = tokenize(buf);
 
 	sb_stemmer *stemmer;
 	stemmer = sb_stemmer_new(language, charenc);
-	stem_file(stemmer, thread_data->raw_file, clean_file);
+	printf("Created new stemmer.\n");
+    printf("Got %d words\n", words.size());
 
-	sb_stemmer_delete(stemmer);
-
-	std::string file;
-	while ((ch = fgetc(clean_file)) != EOF) {
-		file.push_back(ch);
+	for (auto &word : words) {
+		word = (const char *)sb_stemmer_stem(stemmer, (const sb_symbol *)word.c_str(), sizeof(word));
 	}
 
-	std::vector<std::string> words = tokenize(file.c_str());
+	//stem_file(stemmer, thread_data->raw_file, clean_file); 
+	printf("Executed sb_stemmer_stem.\n");
+	sb_stemmer_delete(stemmer);
+	printf("Deleted stemmer.\n");
+
+	//fseek(clean_file, 0, SEEK_SET);
+
+	/*std::string file;
+	while ((ch = fgetc(clean_file)) != EOF) {
+		file.push_back(ch);
+	}*/
+
 	for (auto root : words) {
 		thread_data->roots[root] += 1;
 	}
+
+	//fclose(clean_file);
+//	printf("End of thread_analyser\n");
 }
 
-int readData(std::istream &source) {
-	std::string s;
-	int count = 0;
-	while (std::getline(source, s)) {
-		++count;
-		data.push_back(s);
+void merge (struct ThreadData *thread_data, std::map<std::string, int> &result) {
+	for (int i = 0; i < THREAD_NUM; ++i) {
+		for (auto  x : thread_data[i].roots) {
+			result[x.first] += x.second;
+		}
 	}
-	return count;
 }
