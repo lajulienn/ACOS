@@ -1,0 +1,1 @@
+gcc `pkg-config —cflags glfw3` -lxcb glfw_example.c -o glfw_example `pkg-config —static —libs glfw3`
