@@ -12,10 +12,10 @@
 struct Point {
   GLfloat x;
   GLfloat y;
-} cursor, win_axis, root_axis, pointer_end, tr_vertex1, tr_vertex2;
+};
 
-const int win_pos_x = 70; 
-const int win_pos_y = 50; 
+int win_pos_x = 70; 
+int win_pos_y = 50; 
 const int win_width = 150;
 const int win_height = 150;
 
@@ -24,22 +24,28 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 void draw_line(Point p1, Point p2);
 void draw_triangle(Point p1, Point p2, Point p3);
 double radian_to_degree(double angle);
-double get_angle();
+double get_angle(Point cursor, Point root_axis);
+void window_pos_callback(GLFWwindow* window, int xpos, int ypos);
+void set_axis_coordinates(Point &root_axis);
 
 int main(void) {
-  // initializing global variables
+  // initializing points
+  Point win_axis; // axis in window coordinates
   win_axis.x = 0.0f;
   win_axis.y = 0.0f;
 
-  root_axis.x = win_pos_x + win_width / 2;
-  root_axis.y = win_pos_y + win_height / 2;
+  Point root_axis; // axis in device coordinates
+  set_axis_coordinates(root_axis);
 
+  Point pointer_end;
   pointer_end.x = 0.9f;
   pointer_end.y = 0.0f;
 
+  Point tr_vertex1;
   tr_vertex1.x = 0.8f;
   tr_vertex1.y = 0.1f;
 
+  Point tr_vertex2;
   tr_vertex2.x = 0.8f;
   tr_vertex2.y = -0.1f;
 
@@ -47,17 +53,25 @@ int main(void) {
   xcb_connection_t    *c;
   xcb_screen_t        *screen;
   c = xcb_connect (NULL, NULL);
+  if (xcb_connection_has_error(c)) {
+    perror("Failed to connect to the X server\n");
+    exit(EXIT_FAILURE);
+  }
   screen = xcb_setup_roots_iterator(xcb_get_setup(c)).data;
 
+  // creating window
   GLFWwindow* window;
   glfwSetErrorCallback(error_callback);
-  if (!glfwInit())
+  if (!glfwInit()) {
+    perror("Failed to initialize GLFW library\n");
     exit(EXIT_FAILURE);
+  }
 
   glfwWindowHint(GLFW_DECORATED, GL_FALSE);
 
   window = glfwCreateWindow(win_width, win_height, "Pointer", NULL, NULL);
   if (!window){
+    perror("Failed to create a window\n");
     glfwTerminate();
     exit(EXIT_FAILURE);
   }
@@ -65,6 +79,7 @@ int main(void) {
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
   glfwSetKeyCallback(window, key_callback);
+  glfwSetWindowPosCallback(window, window_pos_callback);
   glfwSetWindowPos(window, win_pos_x, win_pos_y);
 
   while (!glfwWindowShouldClose(window)){
@@ -73,10 +88,12 @@ int main(void) {
     xcb_query_pointer_reply_t* rep;
     cookie = xcb_query_pointer(c, screen->root);
     rep = xcb_query_pointer_reply(c, cookie, 0);
+    Point cursor;
     cursor.x = rep->root_x;
     cursor.y = rep->root_y;
-    
-    double angle = get_angle();
+   
+    set_axis_coordinates(root_axis);
+    double angle = get_angle(cursor, root_axis);
 
     // drawing 
     float ratio;
@@ -100,6 +117,7 @@ int main(void) {
     glfwPollEvents();
   }
 
+  xcb_disconnect(c);
   glfwDestroyWindow(window);
   glfwTerminate();
   exit(EXIT_SUCCESS);
@@ -139,7 +157,7 @@ double radian_to_degree(double angle) {
   return angle * 360 / (2 * M_PI);
 }
 
-double get_angle() {
+double get_angle(Point cursor, Point root_axis) {
   GLfloat x = fabs(cursor.x - root_axis.x);
   GLfloat y = fabs(cursor.y - root_axis.y);
   double angle;
@@ -154,3 +172,13 @@ double get_angle() {
   }
  return radian_to_degree(angle); 
 }
+
+
+void window_pos_callback(GLFWwindow* window, int xpos, int ypos) {
+  win_pos_x = xpos;
+  win_pos_y = ypos;
+}
+void set_axis_coordinates(Point &root_axis) {
+  root_axis.x = win_pos_x + win_width / 2;
+  root_axis.y = win_pos_y + win_height / 2;
+} 
